@@ -62,8 +62,6 @@ public class OAuthSecurityConfig extends AbstractAuthSecurityConfig {
         .and()
         .oauth2Login()
 
-        .authenticationSuccessHandler(new RbacAuthenticationSuccessHandler())
-
         .and()
         .logout()
         .logoutSuccessHandler(logoutHandler)

@@ -1,6 +1,7 @@
 package com.provectus.kafka.ui.service.rbac;
 
 import com.provectus.kafka.ui.config.auth.AuthenticatedUser;
+import com.provectus.kafka.ui.config.auth.RbacUser;
 import com.provectus.kafka.ui.config.auth.RoleBasedAccessControlProperties;
 import com.provectus.kafka.ui.model.ClusterDTO;
 import com.provectus.kafka.ui.model.ConnectDTO;
@@ -18,10 +19,8 @@ import com.provectus.kafka.ui.service.rbac.extractor.GithubAuthorityExtractor;
 import com.provectus.kafka.ui.service.rbac.extractor.GoogleAuthorityExtractor;
 import com.provectus.kafka.ui.service.rbac.extractor.LdapAuthorityExtractor;
 import com.provectus.kafka.ui.service.rbac.extractor.ProviderAuthorityExtractor;
-import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -109,11 +108,9 @@ public class AccessControlService {
   public Mono<AuthenticatedUser> getUser(ServerWebExchange exchange) {
     return ReactiveSecurityContextHolder.getContext()
         .map(SecurityContext::getAuthentication)
-        .map(Principal::getName)
-        .flatMap(name -> exchange.getSession().map(a -> {
-          Set<String> groups = a.getAttribute("GROUPS");
-          return new AuthenticatedUser(name, Objects.requireNonNullElse(groups, Collections.emptySet()));
-        }));
+        .filter(authentication -> authentication.getPrincipal() instanceof RbacUser)
+        .map(authentication -> ((RbacUser) authentication.getPrincipal()))
+        .map(user -> new AuthenticatedUser(user.name(), user.groups()));
   }
 
   private boolean isClusterAccessible(AccessContext context, AuthenticatedUser user) {
