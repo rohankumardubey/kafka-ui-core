@@ -7,7 +7,6 @@ import com.provectus.kafka.ui.model.KafkaCluster;
 import com.provectus.kafka.ui.model.SortOrderDTO;
 import com.provectus.kafka.ui.service.rbac.AccessControlService;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +26,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.BytesDeserializer;
 import org.apache.kafka.common.utils.Bytes;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
@@ -110,7 +110,8 @@ public class ConsumerGroupService {
       int perPage,
       @Nullable String search,
       ConsumerGroupOrderingDTO orderBy,
-      SortOrderDTO sortOrderDto
+      SortOrderDTO sortOrderDto,
+      ServerWebExchange exchange
   ) {
     var comparator = sortOrderDto.equals(SortOrderDTO.ASC)
         ? getPaginationComparator(orderBy)
@@ -126,11 +127,12 @@ public class ConsumerGroupService {
                     .collect(Collectors.toList())
             )
                 .flatMapMany(Flux::fromIterable)
-                .filterWhen(cg -> accessControlService.isConsumerGroupAccessible(cg.getGroupId(), cluster.getName()))
+                .filterWhen(
+                    cg -> accessControlService.isConsumerGroupAccessible(cg.getGroupId(), cluster.getName(), exchange))
                 .collect(Collectors.toList())
                 .map(cgs -> new ConsumerGroupsPage(
-                cgs,
-                (descriptions.size() / perPage) + (descriptions.size() % perPage == 0 ? 0 : 1))))
+                    cgs,
+                    (descriptions.size() / perPage) + (descriptions.size() % perPage == 0 ? 0 : 1))))
     );
   }
 

@@ -16,7 +16,6 @@ import com.provectus.kafka.ui.model.ConsumerGroupsPageResponseDTO;
 import com.provectus.kafka.ui.model.PartitionOffsetDTO;
 import com.provectus.kafka.ui.model.SortOrderDTO;
 import com.provectus.kafka.ui.model.rbac.AccessContext;
-import com.provectus.kafka.ui.model.rbac.permission.ClusterConfigAction;
 import com.provectus.kafka.ui.model.rbac.permission.TopicAction;
 import com.provectus.kafka.ui.service.ConsumerGroupService;
 import com.provectus.kafka.ui.service.OffsetsResetService;
@@ -51,7 +50,7 @@ public class ConsumerGroupsController extends AbstractController implements Cons
   public Mono<ResponseEntity<Void>> deleteConsumerGroup(String clusterName,
                                                         String id,
                                                         ServerWebExchange exchange) {
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .consumerGroup(id)
         .consumerGroupActions(DELETE)
@@ -67,7 +66,7 @@ public class ConsumerGroupsController extends AbstractController implements Cons
   public Mono<ResponseEntity<ConsumerGroupDetailsDTO>> getConsumerGroup(String clusterName,
                                                                         String consumerGroupId,
                                                                         ServerWebExchange exchange) {
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .consumerGroup(consumerGroupId)
         .consumerGroupActions(VIEW)
@@ -84,7 +83,7 @@ public class ConsumerGroupsController extends AbstractController implements Cons
   public Mono<ResponseEntity<Flux<ConsumerGroupDTO>>> getTopicConsumerGroups(String clusterName,
                                                                              String topicName,
                                                                              ServerWebExchange exchange) {
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .topic(topicName)
         .topicActions(TopicAction.VIEW)
@@ -93,7 +92,7 @@ public class ConsumerGroupsController extends AbstractController implements Cons
     Mono<ResponseEntity<Flux<ConsumerGroupDTO>>> job =
         consumerGroupService.getConsumerGroupsForTopic(getCluster(clusterName), topicName)
             .flatMapMany(Flux::fromIterable)
-            .filterWhen(cg -> accessControlService.isConsumerGroupAccessible(cg.getGroupId(), clusterName))
+            .filterWhen(cg -> accessControlService.isConsumerGroupAccessible(cg.getGroupId(), clusterName, exchange))
             .map(ConsumerGroupMapper::toDto)
             .collectList()
             .map(Flux::fromIterable)
@@ -113,7 +112,7 @@ public class ConsumerGroupsController extends AbstractController implements Cons
       SortOrderDTO sortOrderDto,
       ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         // consumer group access validation is within the service
         .build());
@@ -125,7 +124,8 @@ public class ConsumerGroupsController extends AbstractController implements Cons
                 Optional.ofNullable(perPage).filter(i -> i > 0).orElse(defaultConsumerGroupsPageSize),
                 search,
                 Optional.ofNullable(orderBy).orElse(ConsumerGroupOrderingDTO.NAME),
-                Optional.ofNullable(sortOrderDto).orElse(SortOrderDTO.ASC)
+                Optional.ofNullable(sortOrderDto).orElse(SortOrderDTO.ASC),
+                exchange
             )
             .map(this::convertPage)
             .map(ResponseEntity::ok)
@@ -138,7 +138,7 @@ public class ConsumerGroupsController extends AbstractController implements Cons
                                                               Mono<ConsumerGroupOffsetsResetDTO> resetDto,
                                                               ServerWebExchange exchange) {
     return resetDto.flatMap(reset -> {
-      Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+      Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
           .cluster(clusterName)
           .topic(reset.getTopic())
           .topicActions(TopicAction.VIEW)

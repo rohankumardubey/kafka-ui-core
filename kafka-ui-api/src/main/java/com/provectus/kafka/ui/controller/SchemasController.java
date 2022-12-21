@@ -51,7 +51,7 @@ public class SchemasController extends AbstractController implements SchemasApi 
       String clusterName, String subject, @Valid Mono<NewSchemaSubjectDTO> newSchemaSubject,
       ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .schema(subject)
         .schemaActions(SchemaAction.VIEW)
@@ -71,7 +71,7 @@ public class SchemasController extends AbstractController implements SchemasApi 
       ServerWebExchange exchange) {
 
     return newSchemaSubject.flatMap(dto -> {
-      Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+      Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
           .cluster(clusterName)
           .schemaActions(SchemaAction.CREATE)
           .build());
@@ -89,7 +89,7 @@ public class SchemasController extends AbstractController implements SchemasApi 
                                                        String subject,
                                                        ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .schema(subject)
         .schemaActions(SchemaAction.DELETE)
@@ -105,7 +105,7 @@ public class SchemasController extends AbstractController implements SchemasApi 
   public Mono<ResponseEntity<Void>> deleteSchema(String clusterName,
                                                  String subject,
                                                  ServerWebExchange exchange) {
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .schema(subject)
         .schemaActions(SchemaAction.DELETE)
@@ -123,7 +123,7 @@ public class SchemasController extends AbstractController implements SchemasApi 
                                                           Integer version,
                                                           ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .schema(subject)
         .schemaActions(SchemaAction.DELETE)
@@ -139,7 +139,7 @@ public class SchemasController extends AbstractController implements SchemasApi 
   public Mono<ResponseEntity<Flux<SchemaSubjectDTO>>> getAllVersionsBySubject(
       String clusterName, String subject, ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .schema(subject)
         .schemaActions(SchemaAction.VIEW)
@@ -164,7 +164,7 @@ public class SchemasController extends AbstractController implements SchemasApi 
   public Mono<ResponseEntity<SchemaSubjectDTO>> getLatestSchema(String clusterName,
                                                                 String subject,
                                                                 ServerWebExchange exchange) {
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .schema(subject)
         .schemaActions(SchemaAction.VIEW)
@@ -180,7 +180,7 @@ public class SchemasController extends AbstractController implements SchemasApi 
   public Mono<ResponseEntity<SchemaSubjectDTO>> getSchemaByVersion(
       String clusterName, String subject, Integer version, ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .schema(subject)
         .schemaActions(SchemaAction.VIEW)
@@ -198,11 +198,11 @@ public class SchemasController extends AbstractController implements SchemasApi 
                                                                     @Valid Integer pageNum,
                                                                     @Valid Integer perPage,
                                                                     @Valid String search,
-                                                                    ServerWebExchange serverWebExchange) {
+                                                                    ServerWebExchange exchange) {
     return schemaRegistryService
         .getAllSubjectNames(getCluster(clusterName))
         .flatMapMany(Flux::fromArray)
-        .filterWhen(schema -> accessControlService.isSchemaAccessible(schema, clusterName))
+        .filterWhen(schema -> accessControlService.isSchemaAccessible(schema, clusterName, exchange))
         .collectList()
         .flatMap(subjects -> {
           int pageSize = perPage != null && perPage > 0 ? perPage : DEFAULT_PAGE_SIZE;
@@ -228,7 +228,7 @@ public class SchemasController extends AbstractController implements SchemasApi 
       String clusterName, @Valid Mono<CompatibilityLevelDTO> compatibilityLevel,
       ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .schemaActions(SchemaAction.MODIFY_GLOBAL_COMPATIBILITY)
         .build());
@@ -247,7 +247,7 @@ public class SchemasController extends AbstractController implements SchemasApi 
       String clusterName, String subject, @Valid Mono<CompatibilityLevelDTO> compatibilityLevel,
       ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .schemaActions(SchemaAction.EDIT)
         .build());

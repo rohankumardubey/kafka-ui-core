@@ -35,7 +35,7 @@ public class KsqlController extends AbstractController implements KsqlApi {
                                                                     Mono<KsqlCommandV2DTO>
                                                                         ksqlCommand2Dto,
                                                                     ServerWebExchange exchange) {
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .ksqlActions(KsqlAction.EXECUTE)
         .build());
@@ -55,7 +55,7 @@ public class KsqlController extends AbstractController implements KsqlApi {
   public Mono<ResponseEntity<Flux<KsqlResponseDTO>>> openKsqlResponsePipe(String clusterName,
                                                                           String pipeId,
                                                                           ServerWebExchange exchange) {
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .ksqlActions(KsqlAction.EXECUTE)
         .build());
@@ -75,7 +75,7 @@ public class KsqlController extends AbstractController implements KsqlApi {
   @Override
   public Mono<ResponseEntity<Flux<KsqlStreamDescriptionDTO>>> listStreams(String clusterName,
                                                                           ServerWebExchange exchange) {
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .ksqlActions(KsqlAction.EXECUTE)
         .build());
@@ -88,7 +88,7 @@ public class KsqlController extends AbstractController implements KsqlApi {
   @Override
   public Mono<ResponseEntity<Flux<KsqlTableDescriptionDTO>>> listTables(String clusterName,
                                                                         ServerWebExchange exchange) {
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .ksqlActions(KsqlAction.EXECUTE)
         .build());

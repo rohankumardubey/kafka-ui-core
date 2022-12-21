@@ -62,8 +62,7 @@ public class OAuthSecurityConfig extends AbstractAuthSecurityConfig {
         .and()
         .oauth2Login()
 
-        .and()
-        .oauth2Client()
+        .authenticationSuccessHandler(new RbacAuthenticationSuccessHandler())
 
         .and()
         .logout()
@@ -86,8 +85,7 @@ public class OAuthSecurityConfig extends AbstractAuthSecurityConfig {
           }
 
           return extractor.extract(acs, user, Map.of("request", request))
-              .doOnNext(groups -> acs.cacheUser(new AuthenticatedUser(user.getName(), groups)))
-              .thenReturn(user);
+              .map(groups -> new RbacOidcUser(user, groups));
         });
   }
 
@@ -103,8 +101,7 @@ public class OAuthSecurityConfig extends AbstractAuthSecurityConfig {
           }
 
           return extractor.extract(acs, user, Map.of("request", request))
-              .doOnNext(groups -> acs.cacheUser(new AuthenticatedUser(user.getName(), groups)))
-              .thenReturn(user);
+              .map(groups -> new RbacOAuth2User(user, groups));
         });
   }
 

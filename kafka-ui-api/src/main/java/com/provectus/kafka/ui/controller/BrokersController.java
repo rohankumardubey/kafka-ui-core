@@ -32,7 +32,7 @@ public class BrokersController extends AbstractController implements BrokersApi 
   @Override
   public Mono<ResponseEntity<Flux<BrokerDTO>>> getBrokers(String clusterName,
                                                           ServerWebExchange exchange) {
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .build());
 
@@ -44,7 +44,7 @@ public class BrokersController extends AbstractController implements BrokersApi 
   @Override
   public Mono<ResponseEntity<BrokerMetricsDTO>> getBrokersMetrics(String clusterName, Integer id,
                                                                   ServerWebExchange exchange) {
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .build());
 
@@ -60,7 +60,7 @@ public class BrokersController extends AbstractController implements BrokersApi 
   public Mono<ResponseEntity<Flux<BrokersLogdirsDTO>>> getAllBrokersLogdirs(String clusterName,
                                                                             List<Integer> brokers,
                                                                             ServerWebExchange exchange) {
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .build());
 
@@ -74,7 +74,7 @@ public class BrokersController extends AbstractController implements BrokersApi 
   public Mono<ResponseEntity<Flux<BrokerConfigDTO>>> getBrokerConfig(String clusterName,
                                                                      Integer id,
                                                                      ServerWebExchange exchange) {
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .clusterConfigActions(ClusterConfigAction.VIEW)
         .build());
@@ -91,7 +91,7 @@ public class BrokersController extends AbstractController implements BrokersApi 
                                                                      Integer id,
                                                                      Mono<BrokerLogdirUpdateDTO> brokerLogdir,
                                                                      ServerWebExchange exchange) {
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .clusterConfigActions(ClusterConfigAction.VIEW, ClusterConfigAction.EDIT)
         .build());
@@ -109,7 +109,7 @@ public class BrokersController extends AbstractController implements BrokersApi 
                                                              String name,
                                                              Mono<BrokerConfigItemDTO> brokerConfig,
                                                              ServerWebExchange exchange) {
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .clusterConfigActions(ClusterConfigAction.VIEW, ClusterConfigAction.EDIT)
         .build());

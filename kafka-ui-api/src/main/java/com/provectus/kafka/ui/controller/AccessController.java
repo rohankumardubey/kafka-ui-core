@@ -24,26 +24,21 @@ public class AccessController implements AuthorizationApi {
 
   private final AccessControlService accessControlService;
 
-  public Mono<ResponseEntity<Void>> evictCache(ServerWebExchange exchange) {
-    accessControlService.evictCache();
-    return Mono.just(ResponseEntity.ok().build());
-  }
-
   public Mono<ResponseEntity<AuthenticationInfoDTO>> getUserAuthInfo(ServerWebExchange exchange) {
     AuthenticationInfoDTO dto = new AuthenticationInfoDTO();
     UserInfoDTO userInfo = new UserInfoDTO();
 
-    Mono<List<UserPermissionDTO>> permissions = accessControlService.getCachedUser()
+    Mono<List<UserPermissionDTO>> permissions = accessControlService.getUser(exchange)
         .map(user -> accessControlService.getRoles()
             .stream()
-            .filter(role -> user.getGroups().contains(role.getName()))
+            .filter(role -> user.groups().contains(role.getName()))
             .map(role -> mapPermissions(role.getPermissions(), role.getClusters()))
             .flatMap(Collection::stream)
             .collect(Collectors.toList())
         );
 
-    Mono<String> userName = accessControlService.getCachedUser()
-        .map(AuthenticatedUser::getPrincipal);
+    Mono<String> userName = accessControlService.getUser(exchange)
+        .map(AuthenticatedUser::principal);
 
     return userName
         .zipWith(permissions)
