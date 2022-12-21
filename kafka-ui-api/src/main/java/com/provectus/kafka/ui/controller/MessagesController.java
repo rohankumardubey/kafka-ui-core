@@ -55,7 +55,7 @@ public class MessagesController extends AbstractController implements MessagesAp
       String clusterName, String topicName, @Valid List<Integer> partitions,
       ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .topic(topicName)
         .topicActions(MESSAGES_DELETE)
@@ -82,7 +82,7 @@ public class MessagesController extends AbstractController implements MessagesAp
                                                                            String keySerde,
                                                                            String valueSerde,
                                                                            ServerWebExchange exchange) {
-    final Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    final Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .topic(topicName)
         .topicActions(MESSAGES_READ)
@@ -115,7 +115,7 @@ public class MessagesController extends AbstractController implements MessagesAp
       String clusterName, String topicName, @Valid Mono<CreateTopicMessageDTO> createTopicMessage,
       ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .topic(topicName)
         .topicActions(MESSAGES_PRODUCE)
@@ -162,7 +162,7 @@ public class MessagesController extends AbstractController implements MessagesAp
                                                                  SerdeUsageDTO use,
                                                                  ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
         .cluster(clusterName)
         .topic(topicName)
         .topicActions(TopicAction.VIEW)

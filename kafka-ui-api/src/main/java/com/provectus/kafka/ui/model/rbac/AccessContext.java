@@ -11,10 +11,12 @@ import java.util.Collections;
 import java.util.List;
 import lombok.Value;
 import org.springframework.util.Assert;
+import org.springframework.web.server.ServerWebExchange;
 
 @Value
 public class AccessContext {
 
+  ServerWebExchange exchange;
   String cluster;
   Collection<ClusterConfigAction> clusterConfigActions;
 
@@ -34,12 +36,12 @@ public class AccessContext {
 
   Collection<KsqlAction> ksqlActions;
 
-  public static AccessContextBuilder builder() {
-    return new AccessContextBuilder();
+  public static AccessContextBuilder builder(ServerWebExchange exchange) {
+    return new AccessContextBuilder(exchange);
   }
 
-
   public static final class AccessContextBuilder {
+    private final ServerWebExchange exchange;
     private String cluster;
     private Collection<ClusterConfigAction> clusterConfigActions = Collections.emptySet();
     private String topic;
@@ -53,7 +55,8 @@ public class AccessContext {
     private Collection<SchemaAction> schemaActions = Collections.emptySet();
     private Collection<KsqlAction> ksqlActions = Collections.emptySet();
 
-    private AccessContextBuilder() {
+    private AccessContextBuilder(ServerWebExchange exchange) {
+      this.exchange = exchange;
     }
 
     public AccessContextBuilder cluster(String cluster) {
@@ -123,7 +126,7 @@ public class AccessContext {
     }
 
     public AccessContext build() {
-      return new AccessContext(cluster, clusterConfigActions,
+      return new AccessContext(exchange, cluster, clusterConfigActions,
           topic, topicActions,
           consumerGroup, consumerGroupActions,
           connect, connectActions,

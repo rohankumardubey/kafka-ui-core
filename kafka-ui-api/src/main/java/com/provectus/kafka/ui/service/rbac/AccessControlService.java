@@ -1,7 +1,5 @@
 package com.provectus.kafka.ui.service.rbac;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.provectus.kafka.ui.config.auth.AuthenticatedUser;
 import com.provectus.kafka.ui.config.auth.RoleBasedAccessControlProperties;
 import com.provectus.kafka.ui.model.ClusterDTO;
@@ -23,6 +21,7 @@ import com.provectus.kafka.ui.service.rbac.extractor.ProviderAuthorityExtractor;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -40,6 +39,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.client.registration.InMemoryReactiveClientRegistrationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 @Service
@@ -51,9 +51,6 @@ public class AccessControlService {
   @Nullable
   private final InMemoryReactiveClientRegistrationRepository clientRegistrationRepository;
 
-  private final Cache<String, AuthenticatedUser> cachedUsers = CacheBuilder.newBuilder() // TODO cache supporting flux
-      .maximumSize(10000)
-      .build();
   private boolean rbacEnabled = false;
   private Set<ProviderAuthorityExtractor> extractors;
   private final RoleBasedAccessControlProperties properties;
@@ -85,16 +82,12 @@ public class AccessControlService {
     }
   }
 
-  public AccessContext.AccessContextBuilder builder() {
-    return AccessContext.builder();
-  }
-
   public Mono<Void> validateAccess(AccessContext context) {
     if (!rbacEnabled) {
       return Mono.empty();
     }
 
-    return getCachedUser()
+    return getUser(context.getExchange())
         .doOnNext(user -> {
           boolean accessGranted =
               isClusterAccessible(context, user)
@@ -113,69 +106,14 @@ public class AccessControlService {
         .then();
   }
 
-  public void cacheUser(AuthenticatedUser user) {
-    cachedUsers.put(user.getPrincipal(), user);
-  }
-
-  public Mono<AuthenticatedUser> getCachedUser() {
+  public Mono<AuthenticatedUser> getUser(ServerWebExchange exchange) {
     return ReactiveSecurityContextHolder.getContext()
         .map(SecurityContext::getAuthentication)
         .map(Principal::getName)
-        .flatMap(this::getCachedUser);
-  }
-
-  private Mono<AuthenticatedUser> getCachedUser(String principal) {
-    AuthenticatedUser user = cachedUsers.getIfPresent(principal);
-
-    if (user == null) {
-      throw new IllegalArgumentException("User not found in cache");
-    }
-
-    return Mono.just(user);
-  }
-
-  @SuppressWarnings("unused") // TODO issues/3095
-  public Mono<Boolean> canCreateResource(Resource resource, String cluster, String resourceName) {
-    if (!rbacEnabled) {
-      return Mono.empty();
-    }
-
-    return switch (resource) {
-      case TOPIC -> {
-        AccessContext context = AccessContext.builder()
-            .cluster(cluster)
-            .topic(resourceName)
-            .topicActions(TopicAction.CREATE)
-            .build();
-
-        yield getCachedUser()
-            .map(user -> isTopicAccessible(context, user));
-      }
-
-      case SCHEMA -> {
-        AccessContext context = AccessContext.builder()
-            .cluster(cluster)
-            .schema(resourceName)
-            .schemaActions(SchemaAction.CREATE)
-            .build();
-
-        yield getCachedUser()
-            .map(user -> isSchemaAccessible(context, user));
-      }
-
-      case CONNECT -> {
-        AccessContext context = AccessContext.builder()
-            .cluster(cluster)
-            .connect(resourceName)
-            .connectActions(ConnectAction.CREATE)
-            .build();
-
-        yield getCachedUser()
-            .map(user -> isConnectAccessible(context, user));
-      }
-
-      default -> Mono.just(false);
-    };
+        .flatMap(name -> exchange.getSession().map(a -> {
+          Set<String> groups = a.getAttribute("GROUPS");
+          return new AuthenticatedUser(name, Objects.requireNonNullElse(groups, Collections.emptySet()));
+        }));
   }
 
   private boolean isClusterAccessible(AccessContext context, AuthenticatedUser user) {
@@ -191,17 +129,17 @@ public class AccessControlService {
         .anyMatch(filterCluster(context.getCluster()));
   }
 
-  public Mono<Boolean> isClusterAccessible(ClusterDTO cluster) {
+  public Mono<Boolean> isClusterAccessible(ClusterDTO cluster, ServerWebExchange exchange) {
     if (!rbacEnabled) {
       return Mono.just(true);
     }
 
     AccessContext accessContext = AccessContext
-        .builder()
+        .builder(exchange)
         .cluster(cluster.getName())
         .build();
 
-    return getCachedUser().map(u -> isClusterAccessible(accessContext, u));
+    return getUser(exchange).map(u -> isClusterAccessible(accessContext, u));
   }
 
   public boolean isClusterConfigAccessible(AccessContext context, AuthenticatedUser user) {
@@ -240,19 +178,19 @@ public class AccessControlService {
     return isAccessible(Resource.TOPIC, context.getTopic(), user, context, requiredActions);
   }
 
-  public Mono<Boolean> isTopicAccessible(InternalTopic dto, String clusterName) {
+  public Mono<Boolean> isTopicAccessible(InternalTopic dto, String clusterName, ServerWebExchange exchange) {
     if (!rbacEnabled) {
       return Mono.just(true);
     }
 
     AccessContext accessContext = AccessContext
-        .builder()
+        .builder(exchange)
         .cluster(clusterName)
         .topic(dto.getName())
         .topicActions(TopicAction.VIEW)
         .build();
 
-    return getCachedUser().map(u -> isTopicAccessible(accessContext, u));
+    return getUser(exchange).map(u -> isTopicAccessible(accessContext, u));
   }
 
   private boolean isConsumerGroupAccessible(AccessContext context, AuthenticatedUser user) {
@@ -273,19 +211,19 @@ public class AccessControlService {
     return isAccessible(Resource.CONSUMER, context.getConsumerGroup(), user, context, requiredActions);
   }
 
-  public Mono<Boolean> isConsumerGroupAccessible(String groupId, String clusterName) {
+  public Mono<Boolean> isConsumerGroupAccessible(String groupId, String clusterName, ServerWebExchange exchange) {
     if (!rbacEnabled) {
       return Mono.just(true);
     }
 
     AccessContext accessContext = AccessContext
-        .builder()
+        .builder(exchange)
         .cluster(clusterName)
         .consumerGroup(groupId)
         .consumerGroupActions(ConsumerGroupAction.VIEW)
         .build();
 
-    return getCachedUser().map(u -> isConsumerGroupAccessible(accessContext, u));
+    return getUser(exchange).map(u -> isConsumerGroupAccessible(accessContext, u));
   }
 
   public boolean isSchemaAccessible(AccessContext context, AuthenticatedUser user) {
@@ -306,19 +244,19 @@ public class AccessControlService {
     return isAccessible(Resource.SCHEMA, context.getSchema(), user, context, requiredActions);
   }
 
-  public Mono<Boolean> isSchemaAccessible(String schema, String clusterName) {
+  public Mono<Boolean> isSchemaAccessible(String schema, String clusterName, ServerWebExchange exchange) {
     if (!rbacEnabled) {
       return Mono.just(true);
     }
 
     AccessContext accessContext = AccessContext
-        .builder()
+        .builder(exchange)
         .cluster(clusterName)
         .schema(schema)
         .schemaActions(SchemaAction.VIEW)
         .build();
 
-    return getCachedUser().map(u -> isSchemaAccessible(accessContext, u));
+    return getUser(exchange).map(u -> isSchemaAccessible(accessContext, u));
   }
 
   public boolean isConnectAccessible(AccessContext context, AuthenticatedUser user) {
@@ -339,29 +277,28 @@ public class AccessControlService {
     return isAccessible(Resource.CONNECT, context.getConnect(), user, context, requiredActions);
   }
 
-  public Mono<Boolean> isConnectAccessible(ConnectDTO dto, String clusterName) {
+  public Mono<Boolean> isConnectAccessible(ConnectDTO dto, String clusterName, ServerWebExchange exchange) {
     if (!rbacEnabled) {
       return Mono.just(true);
     }
 
-    return isConnectAccessible(dto.getName(), clusterName);
+    return isConnectAccessible(dto.getName(), clusterName, exchange);
   }
 
-  public Mono<Boolean> isConnectAccessible(String connectName, String clusterName) {
+  public Mono<Boolean> isConnectAccessible(String connectName, String clusterName, ServerWebExchange exchange) {
     if (!rbacEnabled) {
       return Mono.just(true);
     }
 
     AccessContext accessContext = AccessContext
-        .builder()
+        .builder(exchange)
         .cluster(clusterName)
         .connect(connectName)
         .connectActions(ConnectAction.VIEW)
         .build();
 
-    return getCachedUser().map(u -> isConnectAccessible(accessContext, u));
+    return getUser(exchange).map(u -> isConnectAccessible(accessContext, u));
   }
-
 
   public boolean isConnectorAccessible(AccessContext context, AuthenticatedUser user) {
     if (!rbacEnabled) {
@@ -371,20 +308,21 @@ public class AccessControlService {
     return isConnectAccessible(context, user);
   }
 
-  public Mono<Boolean> isConnectorAccessible(String connectName, String connectorName, String clusterName) {
+  public Mono<Boolean> isConnectorAccessible(String connectName, String connectorName, String clusterName,
+                                             ServerWebExchange exchange) {
     if (!rbacEnabled) {
       return Mono.just(true);
     }
 
     AccessContext accessContext = AccessContext
-        .builder()
+        .builder(exchange)
         .cluster(clusterName)
         .connect(connectName)
         .connectActions(ConnectAction.VIEW)
         .connector(connectorName)
         .build();
 
-    return getCachedUser().map(u -> isConnectorAccessible(accessContext, u));
+    return getUser(exchange).map(u -> isConnectorAccessible(accessContext, u));
   }
 
   private boolean isKsqlAccessible(AccessContext context, AuthenticatedUser user) {
@@ -429,7 +367,7 @@ public class AccessControlService {
   }
 
   private Predicate<Role> filterRole(AuthenticatedUser user) {
-    return role -> user.getGroups().contains(role.getName());
+    return role -> user.groups().contains(role.getName());
   }
 
   private Predicate<Role> filterCluster(String cluster) {
@@ -454,10 +392,6 @@ public class AccessControlService {
       }
       return value.matcher(resourceValue).matches();
     };
-  }
-
-  public void evictCache() {
-    cachedUsers.invalidateAll();
   }
 
   public boolean isRbacEnabled() {
