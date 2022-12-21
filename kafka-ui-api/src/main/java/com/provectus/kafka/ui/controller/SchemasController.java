@@ -148,7 +148,7 @@ public class SchemasController extends AbstractController implements SchemasApi 
     Flux<SchemaSubjectDTO> schemas =
         schemaRegistryService.getAllVersionsBySubject(getCluster(clusterName), subject);
 
-    return validateAccess.then(Mono.just(ResponseEntity.ok(schemas)));
+    return validateAccess.thenReturn(ResponseEntity.ok(schemas));
   }
 
   @Override

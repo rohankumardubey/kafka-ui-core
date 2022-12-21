@@ -8,7 +8,7 @@ import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
-public record RbacOidcUser(OidcUser user, Collection<String> groups) implements OidcUser {
+public record RbacOidcUser(OidcUser user, Collection<String> groups) implements RbacUser, OidcUser {
 
   @Override
   public Map<String, Object> getClaims() {
@@ -37,6 +37,11 @@ public record RbacOidcUser(OidcUser user, Collection<String> groups) implements 
 
   @Override
   public String getName() {
+    return user.getName();
+  }
+
+  @Override
+  public String name() {
     return user.getName();
   }
 }
