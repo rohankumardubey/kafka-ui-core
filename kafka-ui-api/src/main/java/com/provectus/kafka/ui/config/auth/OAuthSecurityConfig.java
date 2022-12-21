@@ -3,13 +3,12 @@ package com.provectus.kafka.ui.config.auth;
 import com.provectus.kafka.ui.config.auth.logout.OAuthLogoutSuccessHandler;
 import com.provectus.kafka.ui.service.rbac.AccessControlService;
 import com.provectus.kafka.ui.service.rbac.extractor.ProviderAuthorityExtractor;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2ClientProperties;
@@ -43,9 +42,6 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 @Log4j2
 public class OAuthSecurityConfig extends AbstractAuthSecurityConfig {
-
-  private static final String TYPE = "type";
-  private static final String GOOGLE = "google";
 
   private final OAuthProperties properties;
 
@@ -107,25 +103,7 @@ public class OAuthSecurityConfig extends AbstractAuthSecurityConfig {
   public InMemoryReactiveClientRegistrationRepository clientRegistrationRepository() {
     final OAuth2ClientProperties props = OAuthPropertiesConverter.convertProperties(properties);
     final List<ClientRegistration> registrations =
-        OAuth2ClientPropertiesRegistrationAdapter.getClientRegistrations(props).values().stream()
-            .map(cr -> {
-              final OAuthProperties.OAuth2Provider provider =
-                  properties.getClient().get(cr.getRegistrationId());
-
-              Map<String, String> customParams = provider.getCustomParams();
-
-              if (isGoogle(provider)) {
-                String allowedDomain = customParams.get("allowedDomain");
-                if (StringUtils.isNotEmpty(allowedDomain)) {
-                  final String newUri =
-                      cr.getProviderDetails().getAuthorizationUri() + "?hd=" + allowedDomain;
-                  return ClientRegistration.withClientRegistration(cr).authorizationUri(newUri).build();
-                }
-              }
-
-              return cr;
-            })
-            .collect(Collectors.toList());
+        new ArrayList<>(OAuth2ClientPropertiesRegistrationAdapter.getClientRegistrations(props).values());
     return new InMemoryReactiveClientRegistrationRepository(registrations);
   }
 
@@ -148,11 +126,6 @@ public class OAuthSecurityConfig extends AbstractAuthSecurityConfig {
   private String getProviderByProviderId(final String providerId) {
     return properties.getClient().get(providerId).getProvider();
   }
-
-  private boolean isGoogle(OAuthProperties.OAuth2Provider provider) {
-    return provider.getCustomParams().get(TYPE).equalsIgnoreCase(GOOGLE);
-  }
-
 
 }
 

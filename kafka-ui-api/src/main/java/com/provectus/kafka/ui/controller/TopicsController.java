@@ -282,7 +282,7 @@ public class TopicsController extends AbstractController implements TopicsApi {
 
     topicAnalysisService.cancelAnalysis(getCluster(clusterName), topicName);
 
-    return validateAccess.then(Mono.just(ResponseEntity.ok().build()));
+    return validateAccess.thenReturn(ResponseEntity.ok().build());
   }
 
 
@@ -297,11 +297,9 @@ public class TopicsController extends AbstractController implements TopicsApi {
         .topicActions(MESSAGES_READ)
         .build());
 
-    return validateAccess.then(Mono.just(
-        topicAnalysisService.getTopicAnalysis(getCluster(clusterName), topicName)
-            .map(ResponseEntity::ok)
-            .orElseGet(() -> ResponseEntity.notFound().build()))
-    );
+    return validateAccess.thenReturn(topicAnalysisService.getTopicAnalysis(getCluster(clusterName), topicName)
+        .map(ResponseEntity::ok)
+        .orElseGet(() -> ResponseEntity.notFound().build()));
   }
 
   private Comparator<InternalTopic> getComparatorForTopic(
