@@ -38,7 +38,6 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.client.registration.InMemoryReactiveClientRegistrationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
-import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 @Service
@@ -51,7 +50,7 @@ public class AccessControlService {
   private final InMemoryReactiveClientRegistrationRepository clientRegistrationRepository;
 
   private boolean rbacEnabled = false;
-  private Set<ProviderAuthorityExtractor> extractors;
+  private Set<ProviderAuthorityExtractor> extractors = Collections.emptySet();
   private final RoleBasedAccessControlProperties properties;
 
   @PostConstruct
@@ -86,7 +85,7 @@ public class AccessControlService {
       return Mono.empty();
     }
 
-    return getUser(context.getExchange())
+    return getUser()
         .doOnNext(user -> {
           boolean accessGranted =
               isClusterAccessible(context, user)
@@ -105,7 +104,7 @@ public class AccessControlService {
         .then();
   }
 
-  public Mono<AuthenticatedUser> getUser(ServerWebExchange exchange) {
+  public Mono<AuthenticatedUser> getUser() {
     return ReactiveSecurityContextHolder.getContext()
         .map(SecurityContext::getAuthentication)
         .filter(authentication -> authentication.getPrincipal() instanceof RbacUser)
@@ -126,17 +125,17 @@ public class AccessControlService {
         .anyMatch(filterCluster(context.getCluster()));
   }
 
-  public Mono<Boolean> isClusterAccessible(ClusterDTO cluster, ServerWebExchange exchange) {
+  public Mono<Boolean> isClusterAccessible(ClusterDTO cluster) {
     if (!rbacEnabled) {
       return Mono.just(true);
     }
 
     AccessContext accessContext = AccessContext
-        .builder(exchange)
+        .builder()
         .cluster(cluster.getName())
         .build();
 
-    return getUser(exchange).map(u -> isClusterAccessible(accessContext, u));
+    return getUser().map(u -> isClusterAccessible(accessContext, u));
   }
 
   public boolean isClusterConfigAccessible(AccessContext context, AuthenticatedUser user) {
@@ -175,19 +174,19 @@ public class AccessControlService {
     return isAccessible(Resource.TOPIC, context.getTopic(), user, context, requiredActions);
   }
 
-  public Mono<Boolean> isTopicAccessible(InternalTopic dto, String clusterName, ServerWebExchange exchange) {
+  public Mono<Boolean> isTopicAccessible(InternalTopic dto, String clusterName) {
     if (!rbacEnabled) {
       return Mono.just(true);
     }
 
     AccessContext accessContext = AccessContext
-        .builder(exchange)
+        .builder()
         .cluster(clusterName)
         .topic(dto.getName())
         .topicActions(TopicAction.VIEW)
         .build();
 
-    return getUser(exchange).map(u -> isTopicAccessible(accessContext, u));
+    return getUser().map(u -> isTopicAccessible(accessContext, u));
   }
 
   private boolean isConsumerGroupAccessible(AccessContext context, AuthenticatedUser user) {
@@ -208,19 +207,19 @@ public class AccessControlService {
     return isAccessible(Resource.CONSUMER, context.getConsumerGroup(), user, context, requiredActions);
   }
 
-  public Mono<Boolean> isConsumerGroupAccessible(String groupId, String clusterName, ServerWebExchange exchange) {
+  public Mono<Boolean> isConsumerGroupAccessible(String groupId, String clusterName) {
     if (!rbacEnabled) {
       return Mono.just(true);
     }
 
     AccessContext accessContext = AccessContext
-        .builder(exchange)
+        .builder()
         .cluster(clusterName)
         .consumerGroup(groupId)
         .consumerGroupActions(ConsumerGroupAction.VIEW)
         .build();
 
-    return getUser(exchange).map(u -> isConsumerGroupAccessible(accessContext, u));
+    return getUser().map(u -> isConsumerGroupAccessible(accessContext, u));
   }
 
   public boolean isSchemaAccessible(AccessContext context, AuthenticatedUser user) {
@@ -241,19 +240,19 @@ public class AccessControlService {
     return isAccessible(Resource.SCHEMA, context.getSchema(), user, context, requiredActions);
   }
 
-  public Mono<Boolean> isSchemaAccessible(String schema, String clusterName, ServerWebExchange exchange) {
+  public Mono<Boolean> isSchemaAccessible(String schema, String clusterName) {
     if (!rbacEnabled) {
       return Mono.just(true);
     }
 
     AccessContext accessContext = AccessContext
-        .builder(exchange)
+        .builder()
         .cluster(clusterName)
         .schema(schema)
         .schemaActions(SchemaAction.VIEW)
         .build();
 
-    return getUser(exchange).map(u -> isSchemaAccessible(accessContext, u));
+    return getUser().map(u -> isSchemaAccessible(accessContext, u));
   }
 
   public boolean isConnectAccessible(AccessContext context, AuthenticatedUser user) {
@@ -274,27 +273,27 @@ public class AccessControlService {
     return isAccessible(Resource.CONNECT, context.getConnect(), user, context, requiredActions);
   }
 
-  public Mono<Boolean> isConnectAccessible(ConnectDTO dto, String clusterName, ServerWebExchange exchange) {
+  public Mono<Boolean> isConnectAccessible(ConnectDTO dto, String clusterName) {
     if (!rbacEnabled) {
       return Mono.just(true);
     }
 
-    return isConnectAccessible(dto.getName(), clusterName, exchange);
+    return isConnectAccessible(dto.getName(), clusterName);
   }
 
-  public Mono<Boolean> isConnectAccessible(String connectName, String clusterName, ServerWebExchange exchange) {
+  public Mono<Boolean> isConnectAccessible(String connectName, String clusterName) {
     if (!rbacEnabled) {
       return Mono.just(true);
     }
 
     AccessContext accessContext = AccessContext
-        .builder(exchange)
+        .builder()
         .cluster(clusterName)
         .connect(connectName)
         .connectActions(ConnectAction.VIEW)
         .build();
 
-    return getUser(exchange).map(u -> isConnectAccessible(accessContext, u));
+    return getUser().map(u -> isConnectAccessible(accessContext, u));
   }
 
   public boolean isConnectorAccessible(AccessContext context, AuthenticatedUser user) {
@@ -305,21 +304,20 @@ public class AccessControlService {
     return isConnectAccessible(context, user);
   }
 
-  public Mono<Boolean> isConnectorAccessible(String connectName, String connectorName, String clusterName,
-                                             ServerWebExchange exchange) {
+  public Mono<Boolean> isConnectorAccessible(String connectName, String connectorName, String clusterName) {
     if (!rbacEnabled) {
       return Mono.just(true);
     }
 
     AccessContext accessContext = AccessContext
-        .builder(exchange)
+        .builder()
         .cluster(clusterName)
         .connect(connectName)
         .connectActions(ConnectAction.VIEW)
         .connector(connectorName)
         .build();
 
-    return getUser(exchange).map(u -> isConnectorAccessible(accessContext, u));
+    return getUser().map(u -> isConnectorAccessible(accessContext, u));
   }
 
   private boolean isKsqlAccessible(AccessContext context, AuthenticatedUser user) {
@@ -344,6 +342,9 @@ public class AccessControlService {
   }
 
   public List<Role> getRoles() {
+    if (!rbacEnabled) {
+      return Collections.emptyList();
+    }
     return Collections.unmodifiableList(properties.getRoles());
   }
 

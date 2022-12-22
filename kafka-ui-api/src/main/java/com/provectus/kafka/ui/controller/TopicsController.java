@@ -57,7 +57,7 @@ public class TopicsController extends AbstractController implements TopicsApi {
   public Mono<ResponseEntity<TopicDTO>> createTopic(
       String clusterName, @Valid Mono<TopicCreationDTO> topicCreation, ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
         .cluster(clusterName)
         .topicActions(CREATE)
         .build());
@@ -73,7 +73,7 @@ public class TopicsController extends AbstractController implements TopicsApi {
   @Override
   public Mono<ResponseEntity<TopicDTO>> recreateTopic(String clusterName,
                                                       String topicName, ServerWebExchange exchange) {
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
         .cluster(clusterName)
         .topic(topicName)
         .topicActions(VIEW, CREATE, DELETE)
@@ -90,7 +90,7 @@ public class TopicsController extends AbstractController implements TopicsApi {
   public Mono<ResponseEntity<TopicDTO>> cloneTopic(
       String clusterName, String topicName, String newTopicName, ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
         .cluster(clusterName)
         .topic(topicName)
         .topicActions(VIEW, CREATE)
@@ -106,7 +106,7 @@ public class TopicsController extends AbstractController implements TopicsApi {
   public Mono<ResponseEntity<Void>> deleteTopic(
       String clusterName, String topicName, ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
         .cluster(clusterName)
         .topic(topicName)
         .topicActions(DELETE)
@@ -122,7 +122,7 @@ public class TopicsController extends AbstractController implements TopicsApi {
   public Mono<ResponseEntity<Flux<TopicConfigDTO>>> getTopicConfigs(
       String clusterName, String topicName, ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
         .cluster(clusterName)
         .topic(topicName)
         .topicActions(VIEW)
@@ -143,7 +143,7 @@ public class TopicsController extends AbstractController implements TopicsApi {
   public Mono<ResponseEntity<TopicDetailsDTO>> getTopicDetails(
       String clusterName, String topicName, ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
         .cluster(clusterName)
         .topic(topicName)
         .topicActions(VIEW)
@@ -176,7 +176,8 @@ public class TopicsController extends AbstractController implements TopicsApi {
               .filter(topic -> !topic.isInternal()
                   || showInternal != null && showInternal)
               .filter(topic -> search == null || StringUtils.contains(topic.getName(), search))
-              .sorted(comparator).toList();
+              .sorted(comparator)
+              .toList();
           var totalPages = (filtered.size() / pageSize)
               + (filtered.size() % pageSize == 0 ? 0 : 1);
 
@@ -188,7 +189,7 @@ public class TopicsController extends AbstractController implements TopicsApi {
 
           return topicsService.loadTopics(getCluster(clusterName), topicsPage)
               .flatMapMany(Flux::fromIterable)
-              .filterWhen(dto -> accessControlService.isTopicAccessible(dto, clusterName, exchange))
+              .filterWhen(dto -> accessControlService.isTopicAccessible(dto, clusterName))
               .collectList()
               .map(topicsToRender ->
                   new TopicsResponseDTO()
@@ -203,7 +204,7 @@ public class TopicsController extends AbstractController implements TopicsApi {
       String clusterName, String topicName, @Valid Mono<TopicUpdateDTO> topicUpdate,
       ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
         .cluster(clusterName)
         .topic(topicName)
         .topicActions(VIEW, EDIT)
@@ -223,7 +224,7 @@ public class TopicsController extends AbstractController implements TopicsApi {
       Mono<PartitionsIncreaseDTO> partitionsIncrease,
       ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
         .cluster(clusterName)
         .topic(topicName)
         .topicActions(VIEW, EDIT)
@@ -242,7 +243,7 @@ public class TopicsController extends AbstractController implements TopicsApi {
       Mono<ReplicationFactorChangeDTO> replicationFactorChange,
       ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
         .cluster(clusterName)
         .topic(topicName)
         .topicActions(VIEW, EDIT)
@@ -259,7 +260,7 @@ public class TopicsController extends AbstractController implements TopicsApi {
   @Override
   public Mono<ResponseEntity<Void>> analyzeTopic(String clusterName, String topicName, ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
         .cluster(clusterName)
         .topic(topicName)
         .topicActions(MESSAGES_READ)
@@ -274,7 +275,7 @@ public class TopicsController extends AbstractController implements TopicsApi {
   @Override
   public Mono<ResponseEntity<Void>> cancelTopicAnalysis(String clusterName, String topicName,
                                                         ServerWebExchange exchange) {
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
         .cluster(clusterName)
         .topic(topicName)
         .topicActions(MESSAGES_READ)
@@ -291,7 +292,7 @@ public class TopicsController extends AbstractController implements TopicsApi {
                                                                  String topicName,
                                                                  ServerWebExchange exchange) {
 
-    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder(exchange)
+    Mono<Void> validateAccess = accessControlService.validateAccess(AccessContext.builder()
         .cluster(clusterName)
         .topic(topicName)
         .topicActions(MESSAGES_READ)

@@ -26,7 +26,6 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.BytesDeserializer;
 import org.apache.kafka.common.utils.Bytes;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
@@ -110,9 +109,7 @@ public class ConsumerGroupService {
       int perPage,
       @Nullable String search,
       ConsumerGroupOrderingDTO orderBy,
-      SortOrderDTO sortOrderDto,
-      ServerWebExchange exchange
-  ) {
+      SortOrderDTO sortOrderDto) {
     var comparator = sortOrderDto.equals(SortOrderDTO.ASC)
         ? getPaginationComparator(orderBy)
         : getPaginationComparator(orderBy).reversed();
@@ -128,7 +125,7 @@ public class ConsumerGroupService {
             )
                 .flatMapMany(Flux::fromIterable)
                 .filterWhen(
-                    cg -> accessControlService.isConsumerGroupAccessible(cg.getGroupId(), cluster.getName(), exchange))
+                    cg -> accessControlService.isConsumerGroupAccessible(cg.getGroupId(), cluster.getName()))
                 .collect(Collectors.toList())
                 .map(cgs -> new ConsumerGroupsPage(
                     cgs,

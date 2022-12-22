@@ -25,7 +25,7 @@ public class ClustersController extends AbstractController implements ClustersAp
   @Override
   public Mono<ResponseEntity<Flux<ClusterDTO>>> getClusters(ServerWebExchange exchange) {
     Flux<ClusterDTO> job = Flux.fromIterable(clusterService.getClusters())
-        .filterWhen(dto -> accessControlService.isClusterAccessible(dto, exchange));
+        .filterWhen(accessControlService::isClusterAccessible);
 
     return Mono.just(ResponseEntity.ok(job));
   }
@@ -33,7 +33,7 @@ public class ClustersController extends AbstractController implements ClustersAp
   @Override
   public Mono<ResponseEntity<ClusterMetricsDTO>> getClusterMetrics(String clusterName,
                                                                    ServerWebExchange exchange) {
-    AccessContext context = AccessContext.builder(exchange)
+    AccessContext context = AccessContext.builder()
         .cluster(clusterName)
         .build();
 
@@ -48,7 +48,7 @@ public class ClustersController extends AbstractController implements ClustersAp
   @Override
   public Mono<ResponseEntity<ClusterStatsDTO>> getClusterStats(String clusterName,
                                                                ServerWebExchange exchange) {
-    AccessContext context = AccessContext.builder(exchange)
+    AccessContext context = AccessContext.builder()
         .cluster(clusterName)
         .build();
 
@@ -64,7 +64,7 @@ public class ClustersController extends AbstractController implements ClustersAp
   public Mono<ResponseEntity<ClusterDTO>> updateClusterInfo(String clusterName,
                                                             ServerWebExchange exchange) {
 
-    AccessContext context = AccessContext.builder(exchange)
+    AccessContext context = AccessContext.builder()
         .cluster(clusterName)
         .build();
 
