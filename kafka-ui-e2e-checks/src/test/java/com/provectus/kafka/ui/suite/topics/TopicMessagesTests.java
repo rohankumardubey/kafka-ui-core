@@ -112,8 +112,6 @@ public class TopicMessagesTests extends BaseTest {
         "isAlertWithMessageVisible()");
   }
 
-  @Disabled
-  @Issue("https://github.com/provectus/kafka-ui/issues/2856")
   @DisplayName("Checking messages filtering by Offset within Topic/Messages")
   @Suite(suiteId = SUITE_ID, title = SUITE_TITLE)
   @AutomationStatus(status = Status.AUTOMATED)
@@ -129,9 +127,25 @@ public class TopicMessagesTests extends BaseTest {
         .clickSubmitFiltersBtnMessagesTab();
     SoftAssertions softly = new SoftAssertions();
     topicDetails.getAllMessages()
-        .forEach(messages -> softly.assertThat(messages.getOffset() == Integer.parseInt(offsetValue))
+        .forEach(messages -> softly.assertThat(messages.getOffset() >= Integer.parseInt(offsetValue))
         .as("getAllMessages()").isTrue());
     softly.assertAll();
+  }
+
+  @DisplayName("Checking messages filtering by Timestamp within Messages/Topic")
+  @Suite(suiteId = SUITE_ID, title = SUITE_TITLE)
+  @AutomationStatus(status = Status.AUTOMATED)
+  @CaseId(16)
+  @Test
+  void checkingMessageFilteringByTimestamp() {
+    navigateToTopicsAndOpenDetails("_schemas");
+    topicDetails
+        .openDetailsTab(MESSAGES)
+        .selectSeekTypeDdlMessagesTab("Timestamp");
+    System.out.println(topicDetails.getMessage(19).getTimestamp());
+    System.out.println(topicDetails.selectDateByCalendar("22.12.2020"));
+
+
   }
 
   @AfterAll
