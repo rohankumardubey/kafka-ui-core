@@ -159,8 +159,8 @@ public class TopicDetails extends BasePage {
   }
 
   @Step
-  public TopicDetails setSeekTypeValueFldMessagesTab(String seekTypeValue){
-    seekTypeField.shouldBe(Condition.enabled).sendKeys(seekTypeValue);
+  public TopicDetails setSeekTypeValueFldMessagesTab(int seekTypeValue){
+    seekTypeField.shouldBe(Condition.enabled).sendKeys(String.valueOf(seekTypeValue));
     return this;
   }
 

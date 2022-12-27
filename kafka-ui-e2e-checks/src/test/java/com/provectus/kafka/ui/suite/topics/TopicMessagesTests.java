@@ -119,16 +119,18 @@ public class TopicMessagesTests extends BaseTest {
   @CaseId(15)
   @Test
   void checkingMessageFilteringByOffset() {
-    String offsetValue = "2";
     navigateToTopicsAndOpenDetails("_schemas");
     topicDetails
         .openDetailsTab(MESSAGES)
+        .waitUntilScreenReady();
+    int listMessageSize = (topicDetails.getAllMessages().size() - 1);
+    topicDetails
         .selectSeekTypeDdlMessagesTab("Offset")
-        .setSeekTypeValueFldMessagesTab(offsetValue)
+        .setSeekTypeValueFldMessagesTab(listMessageSize)
         .clickSubmitFiltersBtnMessagesTab();
     SoftAssertions softly = new SoftAssertions();
     topicDetails.getAllMessages()
-        .forEach(messages -> softly.assertThat(messages.getOffset() >= Integer.parseInt(offsetValue))
+        .forEach(messages -> softly.assertThat(messages.getOffset() == listMessageSize)
         .as("getAllMessages()").isTrue());
     softly.assertAll();
   }
