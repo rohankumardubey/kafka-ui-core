@@ -15,12 +15,14 @@ import io.qameta.allure.Step;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import org.openqa.selenium.By;
 
 public class TopicDetails extends BasePage {
@@ -54,7 +56,7 @@ public class TopicDetails extends BasePage {
   protected SelenideElement actualCalendarDate = $x("//div[@class='react-datepicker__current-month']");
   protected SelenideElement previousMonthButton = $x("//button[@aria-label='Previous Month']");
   protected SelenideElement nextMonthButton = $x("//button[@aria-label='Next Month']");
-  protected String cellDayLocator = "//div[@role='option'][contains(text(),'%s')]";
+  protected String cellDayLocator = "//div[@role='option'][contains(text(),'%d')]";
   protected String seekFilterDdlLocator = "//ul[@id='selectSeekType']/ul/li[text()='%s']";
   protected String savedFilterNameLocator = "//div[@role='savedFilter']/div[contains(text(),'%s')]";
   protected String consumerIdLocator = "//a[@title='%s']";
@@ -303,73 +305,56 @@ public class TopicDetails extends BasePage {
   }
 
   private void selectYear(int expectedYear) {
-    int actualCalendarYear = getActualCalendarDate().getYear();
-    if (actualCalendarYear != expectedYear) {
-      SelenideElement changeMonthButton =
-          actualCalendarYear < expectedYear ? nextMonthButton : previousMonthButton; ////////
-      LocalTime startTime = LocalTime.now();
-      while (getActualCalendarDate().getYear() != expectedYear) {
-        clickByJavaScript(changeMonthButton);
-        sleep(1000);
-        if (startTime.plusMinutes(3).isBefore(LocalTime.now())) {
-          throw new IllegalArgumentException("Huemae");
-      }
-    }
-  }
-}
-
-  private void selectMonth(int expectedMonth){
-    int actualCalendarMonth = getActualCalendarDate().getMonthValue();
-    if (actualCalendarMonth != expectedMonth) {
-      SelenideElement changeMonthButton =
-          actualCalendarMonth < expectedMonth ? nextMonthButton : previousMonthButton; ////////
-      LocalTime startTime = LocalTime.now();
-      while (getActualCalendarDate().getMonthValue() != expectedMonth) {
-        clickByJavaScript(changeMonthButton);
-        sleep(1000);
-        if (startTime.plusMinutes(3).isBefore(LocalTime.now())) {
-          throw new IllegalArgumentException("Huemae");
-        }
+    while (getActualCalendarDate().getYear() > expectedYear) {
+      clickByJavaScript(previousMonthButton);
+      sleep(1000);
+      if (LocalTime.now().plusMinutes(3).isBefore(LocalTime.now())) {
+        throw new IllegalArgumentException("Unable to select year");
       }
     }
   }
 
-   private void selectDay(int day) {
-    int currentDay = getRandomMessage().getTimestamp().getDayOfMonth();
-    if(currentDay<day){
-
+  private void selectMonth(int expectedMonth) {
+    while (getActualCalendarDate().getMonthValue() > expectedMonth) {
+      clickByJavaScript(previousMonthButton);
+      sleep(1000);
+      if (LocalTime.now().plusMinutes(3).isBefore(LocalTime.now())) {
+        throw new IllegalArgumentException("Unable to select month");
+      }
     }
-    $x(String.format(cellDayLocator,day)).shouldBe(Condition.visible).click();
   }
 
-  public LocalDate selectDateByCalendar(String date){
-    Date date = new Date();
-    date.setYear();
-    LocalDate dateToSelect = LocalDate.parse(date, DateTimeFormatter.ofPattern("dd.MM.yyyy"));
-    selectYear(dateToSelect.getYear());
-    selectMonth(dateToSelect.getMonthValue());
-    selectDay(dateToSelect.getDayOfMonth());
-    return dateToSelect;
+  private void selectDay(int expectedDay) {
+    Objects.requireNonNull($$x(String.format(cellDayLocator, expectedDay)).stream()
+        .filter(day -> !Objects.requireNonNull(day.getAttribute("class")).contains("outside-month"))
+        .findFirst().orElse(null)).shouldBe(Condition.visible).click();
   }
 
-  public LocalDate getActualCalendarDate(){
-    seekTypeField.shouldBe(Condition.visible).click();
+  @Step
+  public TopicDetails selectDateByCalendar(LocalDateTime date) {
+    selectYear(date.getYear());
+    selectMonth(date.getMonthValue());
+    selectDay(date.getDayOfMonth());
+    return this;
+  }
+
+  @Step
+  public LocalDate getActualCalendarDate() {
     String monthAndYearStr = actualCalendarDate.getText().trim();
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US);
-    return LocalDate.parse(monthAndYearStr, formatter);
+    DateTimeFormatter formatter = new DateTimeFormatterBuilder()
+        .parseCaseInsensitive()
+        .append(DateTimeFormatter.ofPattern("MMMM yyyy"))
+        .toFormatter(Locale.ENGLISH);
+    YearMonth yearMonth = formatter.parse(monthAndYearStr, YearMonth::from);
+    return yearMonth.atDay(1);
   }
-//
-//  public void selectDateByCalendar(String date) {
-//    logger.info("selectDateInCalendar '{}'", date);
-//    WebElement calendarView = $x("//div[contains(@class, 'slds-datepicker slds-dropdown')]");
-//    $(calendarView).shouldBe(Condition.visible);
-//    LocalDate dateToSelect = LocalDate.parse(date, DateTimeFormatter.ofPattern("M/d/yyyy"));
-//    selectYear(dateToSelect.getYear());
-//    selectMonth(dateToSelect.getMonthValue());
-//    selectDay(dateToSelect.getDayOfMonth());
-//    $(calendarView).shouldBe(Condition.disappear);
-//  }
 
+  @Step
+  public TopicDetails openCalendarTimestamp(){
+    seekTypeField.shouldBe(Condition.visible).click();
+    actualCalendarDate.shouldBe(Condition.visible);
+    return this;
+  }
 
   @Step
   public TopicDetails.MessageGridItem getRandomMessage() {
@@ -423,9 +408,9 @@ public class TopicDetails extends BasePage {
 
     @Step
     public LocalDateTime getTimestamp() {
-      String dateTimeStr = element.$x("./td[4]/div").getText().trim();
+      String timestampValue = element.$x("./td[4]/div").getText().trim();
       DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
-      return LocalDateTime.parse(dateTimeStr, formatter);
+      return LocalDateTime.parse(timestampValue, formatter);
     }
 
     @Step

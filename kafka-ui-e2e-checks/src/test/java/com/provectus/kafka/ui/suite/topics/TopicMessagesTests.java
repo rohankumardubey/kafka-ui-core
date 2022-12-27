@@ -14,6 +14,7 @@ import com.provectus.kafka.ui.utilities.qaseIoUtils.annotations.Suite;
 import com.provectus.kafka.ui.utilities.qaseIoUtils.enums.Status;
 import io.qameta.allure.Issue;
 import io.qase.api.annotation.CaseId;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.assertj.core.api.SoftAssertions;
@@ -141,11 +142,17 @@ public class TopicMessagesTests extends BaseTest {
     navigateToTopicsAndOpenDetails("_schemas");
     topicDetails
         .openDetailsTab(MESSAGES)
-        .selectSeekTypeDdlMessagesTab("Timestamp");
-    System.out.println(topicDetails.getMessage(19).getTimestamp());
-    System.out.println(topicDetails.selectDateByCalendar("22.12.2020"));
-
-
+        .waitUntilScreenReady();
+    LocalDateTime dateOfTimestamp = topicDetails.getRandomMessage().getTimestamp();
+    topicDetails
+        .selectSeekTypeDdlMessagesTab("Timestamp")
+        .openCalendarTimestamp()
+        .selectDateByCalendar(dateOfTimestamp)
+        .clickSubmitFiltersBtnMessagesTab();
+    SoftAssertions softly = new SoftAssertions();
+    topicDetails.getAllMessages()
+        .forEach(date -> softly.assertThat(date.getTimestamp().equals(dateOfTimestamp))
+        .as("getTimestamp()").isTrue());
   }
 
   @AfterAll
