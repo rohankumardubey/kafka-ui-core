@@ -18,7 +18,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.assertj.core.api.SoftAssertions;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -34,12 +33,19 @@ public class TopicMessagesTests extends BaseTest {
       .setName("topic-with-clean-message-attribute-" + randomAlphabetic(5))
       .setMessageKey(fileToString(System.getProperty("user.dir") + "/src/test/resources/producedkey.txt"))
       .setMessageContent(fileToString(System.getProperty("user.dir") + "/src/test/resources/testData.txt"));
+  private static final Topic TOPIC_FOR_CHECKING_MESSAGES = new Topic()
+      .setName("topic_for_checking_filters" + randomAlphabetic(5))
+      .setMessageKey(randomAlphabetic(3))
+      .setMessageContent(randomAlphabetic(3));
   private static final List<Topic> TOPIC_LIST = new ArrayList<>();
 
   @BeforeAll
   public void beforeAll() {
-    TOPIC_LIST.addAll(List.of(TOPIC_FOR_MESSAGES));
-    TOPIC_LIST.forEach(topic -> apiHelper.createTopic(CLUSTER_NAME, topic.getName()));
+    TOPIC_LIST.addAll(List.of(TOPIC_FOR_MESSAGES, TOPIC_FOR_CHECKING_MESSAGES));
+    TOPIC_LIST.forEach(topic -> {apiHelper.createTopic(CLUSTER_NAME, topic.getName());
+      apiHelper.sendMessage(CLUSTER_NAME, TOPIC_FOR_CHECKING_MESSAGES);});
+//    ;
+//    IntStream.range(0,3).forEach(i -> apiHelper.sendMessage(CLUSTER_NAME, TOPIC_FOR_CHECKING_MESSAGES));}
   }
 
   @DisplayName("produce message")
@@ -141,15 +147,14 @@ public class TopicMessagesTests extends BaseTest {
   @CaseId(16)
   @Test
   void checkingMessageFilteringByTimestamp() {
-    navigateToTopicsAndOpenDetails("_schemas");
-    topicDetails
-        .openDetailsTab(MESSAGES)
-        .waitUntilScreenReady();
-    LocalDateTime dateOfTimestamp = topicDetails.getRandomMessage().getTimestamp();
+    navigateToTopicsAndOpenDetails(TOPIC_FOR_CHECKING_MESSAGES.getName());
+    Assertions.assertTrue(topicDetails.getAllMessages().size() > 2);
+    int listSizeMessages = (topicDetails.getAllMessages().size() -1);
+    LocalDateTime dateOfTimestamp = topicDetails.getMessage(listSizeMessages).getTimestamp();
     topicDetails
         .selectSeekTypeDdlMessagesTab("Timestamp")
         .openCalendarTimestamp()
-        .selectDateByCalendar(dateOfTimestamp)
+        .selectDateTimeByCalendar(dateOfTimestamp)
         .clickSubmitFiltersBtnMessagesTab();
     SoftAssertions softly = new SoftAssertions();
     topicDetails.getAllMessages()
@@ -157,8 +162,8 @@ public class TopicMessagesTests extends BaseTest {
         .as("getTimestamp()").isTrue());
   }
 
-  @AfterAll
-  public void afterAll() {
-    TOPIC_LIST.forEach(topic -> apiHelper.deleteTopic(CLUSTER_NAME, topic.getName()));
-  }
+//  @AfterAll
+//  public void afterAll() {
+//    TOPIC_LIST.forEach(topic -> apiHelper.deleteTopic(CLUSTER_NAME, topic.getName()));
+//  }
 }

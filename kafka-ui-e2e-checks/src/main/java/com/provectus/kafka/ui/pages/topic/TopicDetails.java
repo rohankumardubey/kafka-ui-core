@@ -56,6 +56,7 @@ public class TopicDetails extends BasePage {
   protected SelenideElement actualCalendarDate = $x("//div[@class='react-datepicker__current-month']");
   protected SelenideElement previousMonthButton = $x("//button[@aria-label='Previous Month']");
   protected SelenideElement nextMonthButton = $x("//button[@aria-label='Next Month']");
+  protected SelenideElement timeCalendarField = $x("//input[@placeholder='Time']");
   protected String cellDayLocator = "//div[@role='option'][contains(text(),'%d')]";
   protected String seekFilterDdlLocator = "//ul[@id='selectSeekType']/ul/li[text()='%s']";
   protected String savedFilterNameLocator = "//div[@role='savedFilter']/div[contains(text(),'%s')]";
@@ -330,11 +331,17 @@ public class TopicDetails extends BasePage {
         .findFirst().orElse(null)).shouldBe(Condition.visible).click();
   }
 
+  private void setTime(LocalDateTime dateTime) {
+    timeCalendarField.shouldBe(Condition.visible)
+        .sendKeys(String.valueOf(dateTime.getHour()), String.valueOf(dateTime.getMinute()), String.valueOf(dateTime.getSecond()));
+  }
+
   @Step
-  public TopicDetails selectDateByCalendar(LocalDateTime date) {
-    selectYear(date.getYear());
-    selectMonth(date.getMonthValue());
-    selectDay(date.getDayOfMonth());
+  public TopicDetails selectDateTimeByCalendar(LocalDateTime dateTime) {
+    setTime(dateTime);
+    selectYear(dateTime.getYear());
+    selectMonth(dateTime.getMonthValue());
+    selectDay(dateTime.getDayOfMonth());
     return this;
   }
 
@@ -409,7 +416,7 @@ public class TopicDetails extends BasePage {
     @Step
     public LocalDateTime getTimestamp() {
       String timestampValue = element.$x("./td[4]/div").getText().trim();
-      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy, HH:mm:ss");
       return LocalDateTime.parse(timestampValue, formatter);
     }
 
